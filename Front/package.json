@@ -8,8 +8,10 @@
     "dev:all": "concurrently --kill-others-on-fail \"cd ../Back && venv/bin/uvicorn app.main:app --reload\" \"nuxt dev\"",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
-  },
+    "postinstall": "nuxt prepare",
+    "lint": "oxlint src/**/*.ts src/**/*.vue",
+    "lint:fix": "oxlint . src/**/*.ts src/**/*.vue --fix"
+},
   "dependencies": {
     "@nuxt/image": "1.10.0",
     "@nuxt/ui": "3.3.0",
@@ -20,6 +22,7 @@
   },
   "packageManager": "pnpm@9.5.0+sha1.8c155dc114e1689d18937974f6571e0ceee66f1d",
   "devDependencies": {
-    "concurrently": "^9.2.0"
+    "concurrently": "^9.2.0",
+    "oxlint": "^1.9.0"
   }
 }

@@ -1,0 +1,10 @@
+{
+  "rules": {
+    "no-unused-vars": "error",
+    "no-console": "warn",
+    "eqeqeq": "error",
+    "prefer-const": "warn",
+    "no-extra-semi": "warn"
+  },
+  "files": ["src/**/*.{ts,js,vue}"]
+}
