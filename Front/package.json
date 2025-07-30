@@ -5,6 +5,7 @@
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
+    "dev:all": "concurrently --kill-others-on-fail \"cd ../Back && venv/bin/uvicorn app.main:app --reload\" \"nuxt dev\"",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
@@ -17,5 +18,8 @@
     "vue": "^3.5.18",
     "vue-router": "^4.5.1"
   },
-  "packageManager": "pnpm@9.5.0+sha1.8c155dc114e1689d18937974f6571e0ceee66f1d"
+  "packageManager": "pnpm@9.5.0+sha1.8c155dc114e1689d18937974f6571e0ceee66f1d",
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
 }
