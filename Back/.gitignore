@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Environment
+env/
+venv/
+ENV/
+.venv/
+*.env
+*.env.*
+
+# VSCode
+.vscode/
+
+# Pytest / coverage / logs
+.coverage
+htmlcov/
+*.log
+.cache/
+.pytest_cache/
+
+# Migrations (si tu utilises Alembic)
+migrations/
+alembic/
+
+# Mac / Linux / Windows system files
+.DS_Store
+Thumbs.db
+
+# Compiled or packaged files
+*.egg-info/
+*.egg
+dist/
+build/
+
+# MyPy / Pydantic cache
+.mypy_cache/
+.pdm.toml
+.pdm.lock
+.__pypackages__/
+
+# SQLite / dev DBs
+*.sqlite
+*.sqlite3
+*.db
+*.bak
