@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from typing import List
 from app.schemas.user import UserCreate, UserOut
 from app.schemas.lotoDraw import LotoDrawCreate, LotoDraw
 from app.crud import user as crud_user
@@ -36,9 +37,13 @@ def get_user(email: str, db: Session = Depends(get_db)):
 
 # ----------- DRAWS (LOTO) ------------
 
-@router.post("/draws/", response_model=LotoDraw)
-def create_draw(draw: LotoDrawCreate, db: Session = Depends(get_db)):
-    return crud_loto.create_loto_draw(db, draw)
+@router.post("/draws/", response_model=List[LotoDraw])
+def create_draws(draws: List[LotoDrawCreate], db: Session = Depends(get_db)):
+    created_draws = []
+    for draw in draws:
+        created = crud_loto.create_loto_draw(db, draw)
+        created_draws.append(created)
+    return created_draws
 
 @router.get("/draws/", response_model=list[LotoDraw])
 def read_draws(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):

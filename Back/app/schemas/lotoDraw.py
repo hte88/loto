@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
 
-class LotoDrawBase(BaseModel):
+class LotoDrawCreate(BaseModel):
     number_1: int
     number_2: int
     number_3: int
@@ -11,12 +11,9 @@ class LotoDrawBase(BaseModel):
     number_5: int
     lucky_number: Optional[int] = None
 
-class LotoDrawCreate(LotoDrawBase):
-    pass
-
-class LotoDraw(LotoDrawBase):
+class LotoDraw(LotoDrawCreate):
     id: int
     created_at: datetime
 
     class Config:
-        from_attributes = True  # Pydantic v2 (remplace orm_mode=True)
+        from_attributes = True
