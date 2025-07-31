@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from typing import List
 from app.schemas.user import UserCreate, UserOut
-from app.schemas.lotoDraw import LotoDrawCreate, LotoDraw
+from app.schemas.lotoDraw import LotoDrawCreate, LotoDraw, BulkLotoDraws
 from app.crud import user as crud_user
 from app.crud import lotoDraw as crud_loto
 from app.database import SessionLocal
@@ -44,6 +44,24 @@ def create_draws(draws: List[LotoDrawCreate], db: Session = Depends(get_db)):
         created = crud_loto.create_loto_draw(db, draw)
         created_draws.append(created)
     return created_draws
+
+@router.post("/draws/bulk", response_model=List[LotoDraw])
+def create_draws_bulk(payload: BulkLotoDraws, db: Session = Depends(get_db)):
+    results = []
+
+    for draw in payload.root.values():  # .root car on utilise RootModel
+        loto = LotoDrawCreate(
+            number_1=draw[0],
+            number_2=draw[1],
+            number_3=draw[2],
+            number_4=draw[3],
+            number_5=draw[4],
+            lucky_number=draw[5]  # ← None accepté ici
+        )
+        created = crud_loto.create_loto_draw(db, loto)
+        results.append(created)
+
+    return results
 
 @router.get("/draws/", response_model=list[LotoDraw])
 def read_draws(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
