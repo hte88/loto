@@ -2,6 +2,8 @@ from sqlalchemy.orm import Session
 from app.models.lotoDraw import LotoDraw
 from app.schemas.lotoDraw import LotoDrawCreate
 
+from collections import Counter
+
 def create_loto_draw(db: Session, draw: LotoDrawCreate):
     existing = db.query(LotoDraw).filter_by(
         number_1=draw.number_1,
@@ -33,3 +35,31 @@ def delete_loto_draw(db: Session, draw_id: int):
         db.delete(db_draw)
         db.commit()
     return db_draw
+
+## start algo
+
+def get_global_number_frequency(db: Session):
+    draws = db.query(LotoDraw).all()
+
+    counter = Counter()
+    for draw in draws:
+        numbers = [
+            draw.number_1,
+            draw.number_2,
+            draw.number_3,
+            draw.number_4,
+            draw.number_5
+        ]
+        counter.update(numbers)
+        if draw.lucky_number is not None:
+            counter[draw.lucky_number] += 1
+
+    frequency = [
+        {"number": number, "count": count}
+        for number, count in counter.most_common()
+    ]
+
+    return {
+        "total_draws": len(draws),
+        "global_frequency": frequency
+    }

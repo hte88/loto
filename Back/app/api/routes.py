@@ -67,6 +67,14 @@ def create_draws_bulk(payload: BulkLotoDraws, db: Session = Depends(get_db)):
 def read_draws(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return crud_loto.get_loto_draws(db, skip=skip, limit=limit)
 
+## start algo
+
+@router.get("/draws/frequency")
+def get_global_frequency(db: Session = Depends(get_db)):
+    return crud_loto.get_global_number_frequency(db)
+
+## fin
+
 @router.get("/draws/{draw_id}", response_model=LotoDraw)
 def read_draw(draw_id: int, db: Session = Depends(get_db)):
     db_draw = crud_loto.get_loto_draw(db, draw_id)
