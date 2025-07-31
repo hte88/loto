@@ -73,6 +73,10 @@ def read_draws(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 def get_global_frequency(db: Session = Depends(get_db)):
     return crud_loto.get_global_number_frequency(db)
 
+@router.get("/draws/weights")
+def get_weighted_draws(db: Session = Depends(get_db)):
+    return crud_loto.get_weighted_numbers(db)
+
 ## fin
 
 @router.get("/draws/{draw_id}", response_model=LotoDraw)
