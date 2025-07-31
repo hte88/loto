@@ -35,3 +35,23 @@ class BulkLotoDraws(RootModel[Dict[str, List[Optional[int]]]]):
             if len(draw) != 6:
                 raise ValueError(f"Tirage {key} doit contenir exactement 5 ou 6 éléments.")
         return values
+
+
+class GridGenerationConfig(BaseModel):
+    equilibrePairImpair: bool = True
+    favoriserPair: int = 50  # entre 0 et 100
+
+    equilibreHautBas: bool = True
+    favoriserHaut: int = 50  # entre 0 et 100
+
+    nombreGrilleAGenerer: int = 1
+
+    eviterLesSuitesLogique: bool = True
+    suiteLogiqueTolerence: int = 10  # % (ex: max 1 suite sur 5)
+
+    eviterChiffreRond: bool = True
+    chiffreRondLogiqueTolerence: int = 50  # % (ex: max 2/5)
+
+
+    # Pondération générale si besoin
+    favoriserFrequence: int = 100  # 0 à 100 : 100 = favorise les plus fréquents

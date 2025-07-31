@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from typing import List
 from app.schemas.user import UserCreate, UserOut
-from app.schemas.lotoDraw import LotoDrawCreate, LotoDraw, BulkLotoDraws
+from app.schemas.lotoDraw import LotoDrawCreate, LotoDraw, BulkLotoDraws, GridGenerationConfig
 from app.crud import user as crud_user
 from app.crud import lotoDraw as crud_loto
 from app.database import SessionLocal
@@ -77,6 +77,9 @@ def get_global_frequency(db: Session = Depends(get_db)):
 def get_weighted_draws(db: Session = Depends(get_db)):
     return crud_loto.get_weighted_numbers(db)
 
+@router.post("/draws/generate")
+def generate_draws(config: GridGenerationConfig, db: Session = Depends(get_db)):
+    return crud_loto.generate_weighted_grids(db, config.model_dump())
 ## fin
 
 @router.get("/draws/{draw_id}", response_model=LotoDraw)
