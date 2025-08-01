@@ -111,7 +111,7 @@ def generate_weighted_grids(db: Session, config: dict):
     weights = {n: (frequencies[n] / max_f) + 0.01 for n in all_numbers}  # +0.01 pour éviter les zéros
 
     existing_grids = set()
-    if config.get("verifierExistence"):
+    if config.get("shouldCheckExistence"):
         existing_grids = {
             tuple(sorted([d.number_1, d.number_2, d.number_3, d.number_4, d.number_5]))
             for d in draws
@@ -124,60 +124,60 @@ def generate_weighted_grids(db: Session, config: dict):
             if attempts > 1000:
                 raise Exception("Impossible de générer une grille valide selon les critères.")
 
-            grid = config.get("inclureNumeros", []).copy()
+            grid = config.get("includeNumbers", []).copy()
 
             while len(grid) < 5:
                 number = random.choices(all_numbers, weights=[weights[n] for n in all_numbers])[0]
-                if number in grid or number in config.get("exclureNumeros", []):
+                if number in grid or number in config.get("excludeNumbers", []):
                     continue
                 grid.append(number)
 
             grid.sort()
 
             # --- Vérifie existence
-            if config.get("verifierExistence"):
+            if config.get("shouldCheckExistence"):
                 if tuple(grid) in existing_grids:
                     continue
 
             # --- Contraintes pair/impair
-            if config["equilibrePairImpair"]:
-                pair_goal = round(config["favoriserPair"] / 100 * 5)
+            if config["shouldBalanceEvenOdd"]:
+                pair_goal = round(config["favorEven"] / 100 * 5)
                 if sum(1 for n in grid if n % 2 == 0) != pair_goal:
                     continue
 
             # --- Contraintes haut/bas
-            if config["equilibreHautBas"]:
-                haut_goal = round(config["favoriserHaut"] / 100 * 5)
+            if config["shouldBalanceHighLow"]:
+                haut_goal = round(config["favorHigh"] / 100 * 5)
                 if sum(1 for n in grid if n >= 25) != haut_goal:
                     continue
 
             # --- Suites interdites
-            if config["eviterLesSuitesLogique"]:
+            if config["shouldAvoidLogicalSequences"]:
                 suites = count_consecutive(grid)
-                max_suites = round(config["suiteLogiqueTolerence"] / 100 * 5)
+                max_suites = round(config["sequenceTolerance"] / 100 * 5)
                 if suites > max_suites:
                     continue
 
             # --- Chiffres ronds interdits
-            if config["eviterChiffreRond"]:
+            if config["shouldAvoidRoundNumbers"]:
                 ronds = count_round_numbers(grid)
-                max_ronds = round(config["chiffreRondLogiqueTolerence"] / 100 * 5)
+                max_ronds = round(config["roundNumberTolerance"] / 100 * 5)
                 if ronds > max_ronds:
                     continue
 
             # --- Chance
             def generate_lucky_number():
-                if not config.get("genererLucky", True):
+                if not config.get("shouldGenerateLucky", True):
                     return None
 
-                possible = [i for i in range(1, 11) if i not in config.get("exclureLucky", [])]
+                possible = [i for i in range(1, 11) if i not in config.get("excludeLucky", [])]
                 if not possible:
                     return None
 
                 base_weights = [counter.get(i, 1) for i in possible]
 
                 # Si un lucky est à favoriser, on augmente son poids
-                favori = config.get("favoriserLucky")
+                favori = config.get("favorLucky")
                 if favori in possible:
                     favori_index = possible.index(favori)
                     base_weights[favori_index] *= 2  # ou un autre facteur
@@ -188,16 +188,16 @@ def generate_weighted_grids(db: Session, config: dict):
             lucky_number = generate_lucky_number()
             # --- Score pondéré
             score = 0
-            if config.get("evaluerScore"):
+            if config.get("shouldEvaluateScore"):
                 score = round(sum(weights[n] for n in grid), 4)
 
             return {
                 "numbers": grid,
                 "lucky_number": lucky_number,
-                **({"score": score} if config.get("evaluerScore") else {})
+                **({"score": score} if config.get("shouldEvaluateScore") else {})
             }
 
-    return [pick_grid() for _ in range(config["nombreGrilleAGenerer"])]
+    return [pick_grid() for _ in range(config["gridsToGenerate"])]
 
 def count_consecutive(numbers: list[int]) -> int:
     sorted_nums = sorted(numbers)

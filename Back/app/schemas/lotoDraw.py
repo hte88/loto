@@ -38,28 +38,28 @@ class BulkLotoDraws(RootModel[Dict[str, List[Optional[int]]]]):
 
 
 class GridGenerationConfig(BaseModel):
-    equilibrePairImpair: bool = True
-    favoriserPair: int = 50  # entre 0 et 100
+    shouldBalanceEvenOdd: bool = True
+    favorEven: int = 50  # entre 0 et 100
 
-    equilibreHautBas: bool = True
-    favoriserHaut: int = 50  # entre 0 et 100
+    shouldBalanceHighLow: bool = True
+    favorHigh: int = 50  # entre 0 et 100
 
-    nombreGrilleAGenerer: int = 1
+    gridsToGenerate: int = 1
 
-    eviterLesSuitesLogique: bool = True
-    suiteLogiqueTolerence: int = 10  # % (ex: max 1 suite sur 5)
+    shouldAvoidLogicalSequences: bool = True
+    sequenceTolerance: int = 10  # % (ex: max 1 suite sur 5)
 
-    eviterChiffreRond: bool = True
-    chiffreRondLogiqueTolerence: int = 50  # % (ex: max 2/5)
+    shouldAvoidRoundNumbers: bool = True
+    roundNumberTolerance: int = 50  # % (ex: max 2/5)
 
-    inclureNumeros: List[int] = []
-    exclureNumeros: List[int] = []
+    includeNumbers: List[int] = []
+    excludeNumbers: List[int] = []
 
-    verifierExistence: bool = False
-    evaluerScore: bool = False
+    shouldCheckExistence: bool = False
+    shouldEvaluateScore: bool = False
 
-    genererLucky: bool = True
-    favoriserLucky: Optional[int] = None
-    exclureLucky: List[int] = []
+    shouldGenerateLucky: bool = True
+    favorLucky: Optional[int] = None
+    excludeLucky: List[int] = []
     # Pondération générale si besoin
     favoriserFrequence: int = 100  # 0 à 100 : 100 = favorise les plus fréquents
