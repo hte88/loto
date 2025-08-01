@@ -68,28 +68,40 @@ def get_global_number_frequency(db: Session):
 # scrore hight (1) low (0)
 def get_weighted_numbers(db: Session):
     draws = db.query(LotoDraw).all()
-    counter = Counter()
+
+    number_counter = Counter()
+    lucky_counter = Counter()
 
     for draw in draws:
+        # 5 numéros classiques
         nums = [draw.number_1, draw.number_2, draw.number_3, draw.number_4, draw.number_5]
-        counter.update(nums)
+        number_counter.update(nums)
+
+        # lucky_number (séparé)
         if draw.lucky_number is not None:
-            counter[draw.lucky_number] += 1
+            lucky_counter[draw.lucky_number] += 1
 
-    if not counter:
-        return []
+    if not number_counter:
+        return {"numbers": [], "lucky_numbers": []}
 
-    max_count = max(counter.values())
-    min_count = min(counter.values())
+    # Pondération classique
+    def normalize(counter: Counter):
+        max_count = max(counter.values())
+        min_count = min(counter.values())
+        result = []
+        for number, count in counter.items():
+            weight = (count - min_count) / (max_count - min_count) if max_count > min_count else 1.0
+            result.append({
+                "number": number,
+                "count": count,
+                "weight": round(weight, 4)
+            })
+        return sorted(result, key=lambda x: x["number"])
 
-    result = []
-    for number, count in counter.items():
-        weight = (count - min_count) / (max_count - min_count) if max_count > min_count else 1.0
-        result.append({
-            "number": number,
-            "count": count,
-            "weight": round(weight, 4)  # normalisé entre 0 et 1
-        })
+    return {
+        "numbers": normalize(number_counter),
+        "lucky_numbers": normalize(lucky_counter)
+    }
 
 def generate_weighted_grids(db: Session, config: dict):
     from collections import Counter

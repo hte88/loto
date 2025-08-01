@@ -25,7 +25,6 @@ const isDrawerOpen = ref(false)
     body: {}
 }) */
 
-
 /*
 const { data: weights, execute: execWeights } = useFetch('api/draws/weights', {
     key: 'get-draws-weights',
@@ -62,7 +61,12 @@ const { data: dgenerate, execute: execGenerate } = useFetch('api/draws/generate'
     method: 'POST',
     immediate: false,
     watch: false,
-    body: lotteryConfig
+    body: lotteryConfig,
+    transform: (dgenerate) =>
+        dgenerate.map((it) => ({
+            ...it,
+            numbers: Array.isArray(it.numbers) ? it.numbers.join('-') : it.numbers
+        }))
 })
 
 function execute() {
@@ -80,14 +84,10 @@ onMounted(() => {
 const numbers = ref<CheckboxGroupItem[]>(Array.from({ length: 49 }, (_, i) => i + 1))
 const luckNumbers = ref<CheckboxGroupItem[]>(Array.from({ length: 10 }, (_, i) => i + 1))
 
-const numbersSelected = ref(dgenerate.value?.numbers ?? [])
-const luckyNumberSelected = ref([])
-const result = computed(() => `${numbersSelected.value} ${luckyNumberSelected.value}`)
 
-const first = computed(() => dgenerate.value?.[0]?.numbers.map(String) ?? [])
-const firstLucky = computed(() => dgenerate.value?.[0]?.lucky_number.toString() ?? '')
-
-
+const result = computed(() => dgenerate.value ?? [])
+const first = computed(() => result.value?.[0]?.numbers.split('-') ?? [])
+const firstLucky = computed(() => result.value?.[0]?.lucky_number.toString() ?? '')
 </script>
 
 <template>
@@ -158,23 +158,14 @@ const firstLucky = computed(() => dgenerate.value?.[0]?.lucky_number.toString() 
                 </div>
             </section>
 
-            <LotoStatsFrequency/>
+            <section v-if="result.length > 0">
+                <CommonsTableStat :data="result" />
+            </section>
 
-            <div>
-                <ul>
-                    <li v-for="number in dgenerate" :key="number.number">
-                        {{ number.numbers }} - {{ number.lucky_number }} - {{ number.score }}
-                    </li>
-                </ul>
-            </div>
+            <USeparator size="xl" />
 
-            <!--  <div>
-            <ul>
-                <li v-for="number in dgenerate" :key="number.number">
-                    {{ number.numbers }} - {{ number.lucky_number }} - {{ number.score }}
-                </li>
-            </ul>
-        </div>  -->
+            <LotoStatsWeigths />
+            <LotoStatsFrequency />
         </div>
     </div>
 </template>
