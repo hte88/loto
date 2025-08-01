@@ -166,8 +166,26 @@ def generate_weighted_grids(db: Session, config: dict):
                     continue
 
             # --- Chance
-            chance = random.choices(range(1, 11), weights=[counter.get(i, 1) for i in range(1, 11)])[0]
+            def generate_lucky_number():
+                if not config.get("genererLucky", True):
+                    return None
 
+                possible = [i for i in range(1, 11) if i not in config.get("exclureLucky", [])]
+                if not possible:
+                    return None
+
+                base_weights = [counter.get(i, 1) for i in possible]
+
+                # Si un lucky est à favoriser, on augmente son poids
+                favori = config.get("favoriserLucky")
+                if favori in possible:
+                    favori_index = possible.index(favori)
+                    base_weights[favori_index] *= 2  # ou un autre facteur
+
+                return random.choices(possible, weights=base_weights)[0]
+
+
+            lucky_number = generate_lucky_number()
             # --- Score pondéré
             score = 0
             if config.get("evaluerScore"):
@@ -175,7 +193,7 @@ def generate_weighted_grids(db: Session, config: dict):
 
             return {
                 "numbers": grid,
-                "lucky_number": chance,
+                "lucky_number": lucky_number,
                 **({"score": score} if config.get("evaluerScore") else {})
             }
 

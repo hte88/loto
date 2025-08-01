@@ -58,5 +58,8 @@ class GridGenerationConfig(BaseModel):
     verifierExistence: bool = False
     evaluerScore: bool = False
 
+    genererLucky: bool = True
+    favoriserLucky: Optional[int] = None
+    exclureLucky: List[int] = []
     # Pondération générale si besoin
     favoriserFrequence: int = 100  # 0 à 100 : 100 = favorise les plus fréquents
