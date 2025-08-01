@@ -52,6 +52,11 @@ class GridGenerationConfig(BaseModel):
     eviterChiffreRond: bool = True
     chiffreRondLogiqueTolerence: int = 50  # % (ex: max 2/5)
 
+    inclureNumeros: List[int] = []
+    exclureNumeros: List[int] = []
+
+    verifierExistence: bool = False
+    evaluerScore: bool = False
 
     # Pondération générale si besoin
     favoriserFrequence: int = 100  # 0 à 100 : 100 = favorise les plus fréquents

@@ -110,6 +110,13 @@ def generate_weighted_grids(db: Session, config: dict):
     max_f = max(frequencies.values() or [1])
     weights = {n: (frequencies[n] / max_f) + 0.01 for n in all_numbers}  # +0.01 pour éviter les zéros
 
+    existing_grids = set()
+    if config.get("verifierExistence"):
+        existing_grids = {
+            tuple(sorted([d.number_1, d.number_2, d.number_3, d.number_4, d.number_5]))
+            for d in draws
+        }
+
     def pick_grid():
         attempts = 0
         while True:
@@ -117,11 +124,20 @@ def generate_weighted_grids(db: Session, config: dict):
             if attempts > 1000:
                 raise Exception("Impossible de générer une grille valide selon les critères.")
 
-            grid = []
+            grid = config.get("inclureNumeros", []).copy()
+
             while len(grid) < 5:
                 number = random.choices(all_numbers, weights=[weights[n] for n in all_numbers])[0]
-                if number not in grid:
-                    grid.append(number)
+                if number in grid or number in config.get("exclureNumeros", []):
+                    continue
+                grid.append(number)
+
+            grid.sort()
+
+            # --- Vérifie existence
+            if config.get("verifierExistence"):
+                if tuple(grid) in existing_grids:
+                    continue
 
             # --- Contraintes pair/impair
             if config["equilibrePairImpair"]:
@@ -135,23 +151,33 @@ def generate_weighted_grids(db: Session, config: dict):
                 if sum(1 for n in grid if n >= 25) != haut_goal:
                     continue
 
-            # --- Contraintes suites logiques
+            # --- Suites interdites
             if config["eviterLesSuitesLogique"]:
                 suites = count_consecutive(grid)
                 max_suites = round(config["suiteLogiqueTolerence"] / 100 * 5)
                 if suites > max_suites:
                     continue
 
-            # --- Contraintes chiffres ronds
+            # --- Chiffres ronds interdits
             if config["eviterChiffreRond"]:
                 ronds = count_round_numbers(grid)
                 max_ronds = round(config["chiffreRondLogiqueTolerence"] / 100 * 5)
                 if ronds > max_ronds:
                     continue
 
-            grid.sort()
+            # --- Chance
             chance = random.choices(range(1, 11), weights=[counter.get(i, 1) for i in range(1, 11)])[0]
-            return {"numbers": grid, "lucky_number": chance}
+
+            # --- Score pondéré
+            score = 0
+            if config.get("evaluerScore"):
+                score = round(sum(weights[n] for n in grid), 4)
+
+            return {
+                "numbers": grid,
+                "lucky_number": chance,
+                **({"score": score} if config.get("evaluerScore") else {})
+            }
 
     return [pick_grid() for _ in range(config["nombreGrilleAGenerer"])]
 
