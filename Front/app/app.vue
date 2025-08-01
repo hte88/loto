@@ -25,11 +25,7 @@ const isDrawerOpen = ref(false)
     body: {}
 }) */
 
-const { data: frequency, execute: execFrequency } = useFetch('api/draws/frequency', {
-    key: 'get-draws-frequency',
-    method: 'GET',
-    baseURL: config.public.BASE_URL
-})
+
 /*
 const { data: weights, execute: execWeights } = useFetch('api/draws/weights', {
     key: 'get-draws-weights',
@@ -75,7 +71,6 @@ function execute() {
 }
 
 onMounted(() => {
-    execFrequency()
     /*  execFrequency()
     execWeights()
     execGenerate() */
@@ -91,6 +86,8 @@ const result = computed(() => `${numbersSelected.value} ${luckyNumberSelected.va
 
 const first = computed(() => dgenerate.value?.[0]?.numbers.map(String) ?? [])
 const firstLucky = computed(() => dgenerate.value?.[0]?.lucky_number.toString() ?? '')
+
+
 </script>
 
 <template>
@@ -161,6 +158,8 @@ const firstLucky = computed(() => dgenerate.value?.[0]?.lucky_number.toString() 
                 </div>
             </section>
 
+            <LotoStatsFrequency/>
+
             <div>
                 <ul>
                     <li v-for="number in dgenerate" :key="number.number">
@@ -169,14 +168,7 @@ const firstLucky = computed(() => dgenerate.value?.[0]?.lucky_number.toString() 
                 </ul>
             </div>
 
-            <div>
-            <ul>
-                <li v-for="number in frequency.global_frequency" :key="number.number">
-                    {{ number.number }} - {{ number.count }} - {{ number.weight }}
-                </li>
-            </ul>
-        </div>
-       <!--  <div>
+            <!--  <div>
             <ul>
                 <li v-for="number in dgenerate" :key="number.number">
                     {{ number.numbers }} - {{ number.lucky_number }} - {{ number.score }}
