@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import { z } from 'zod'
 
-const props = defineProps<{
+const {
+    placeholder,
+    title,
+    max = 20
+} = defineProps<{
     placeholder: string
     title: string
+    max?: number
 }>()
 
 const lotteryConfig = defineModel<number[]>({ required: true })
@@ -36,8 +41,8 @@ function validateTag(value: string): boolean {
         return false
     }
 
-    if (lotteryConfig.value.length >= 9) {
-        error.value = `Vous ne pouvez ajouter que 9 numéros maximum.`
+    if (lotteryConfig.value.length >= max) {
+        error.value = `Vous ne pouvez ajouter que ${max} numéros maximum.`
         return false
     }
 
@@ -53,12 +58,12 @@ function validateTag(value: string): boolean {
         :schema="schema"
         class="flex flex-col gap-4 bg-gray-600 rounded-xl p-3"
     >
-        <UFormField :label="props.title" name="list">
+        <UFormField :label="title" name="list">
             <UInputTags
                 v-model="includeNumbersModel"
                 size="xl"
-                :max="9"
-                :placeholder="props.placeholder"
+                :max
+                :placeholder="placeholder"
                 :ui="{ base: 'w-full' }"
                 @add="
                     (e: any) => {

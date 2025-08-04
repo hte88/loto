@@ -1,10 +1,24 @@
 <script setup lang="ts">
 import { boolean, z } from 'zod'
 
-const { maxTolerance, minTolerance, title } = defineProps<{
+const {
+    maxTolerance,
+    minTolerance,
+    title,
+    slider = { min: 0, max: 100, step: 1 },
+    error,
+    label
+} = defineProps<{
+    title: string
     maxTolerance: number
     minTolerance: number
-    title: string
+    slider?: {
+        min: number
+        max: number
+        step: number
+    }
+    error?: string
+    label?: string
 }>()
 
 const should = defineModel<boolean>('should', { required: true })
@@ -17,6 +31,9 @@ const schema = z.object({
 
 const isToleranceInvalid = computed(() => {
     return tolerance.value < minTolerance || tolerance.value > maxTolerance
+})
+const labelField = computed(() => {
+return label ? `${label} (${tolerance.value})` : `Favoriser a (${tolerance.value}%)`
 })
 </script>
 
@@ -32,20 +49,23 @@ const isToleranceInvalid = computed(() => {
             <USwitch v-model="should" size="xl" />
         </div>
         <template v-if="should">
-            <UFormField :label="`Tolérance (${tolerance}%)`" name="tolerance">
+            <UFormField :label="labelField" name="tolerance">
                 <USlider
                     v-model="tolerance"
                     :color="isToleranceInvalid ? 'warning' : 'primary'"
                     size="xl"
-                    :min="0"
-                    :max="100"
-                    :step="1"
+                    :min="slider.min"
+                    :max="slider.max"
+                    :step="slider.step"
                 />
             </UFormField>
 
-            <p v-if="isToleranceInvalid" class="text-sm">
-                ⚠️ La tolérance doit être entre {{ minTolerance }}% et {{ maxTolerance }}%.
-            </p>
+            <div v-if="isToleranceInvalid" class="text-sm">
+                <p v-if="error">⚠️ {{ error }}</p>
+                <p v-else>
+                    ⚠️ La tolérance doit être entre {{ minTolerance }}% et {{ maxTolerance }}%.
+                </p>
+            </div>
         </template>
     </UForm>
 </template>
