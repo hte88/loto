@@ -45,6 +45,7 @@ class GridGenerationConfig(BaseModel):
     favorHigh: int = 50  # entre 0 et 100
 
     gridsToGenerate: int = 1
+    numbersToGenerate: int = 5
 
     shouldAvoidLogicalSequences: bool = True
     sequenceTolerance: int = 10  # % (ex: max 1 suite sur 5)
