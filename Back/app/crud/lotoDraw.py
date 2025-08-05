@@ -1,25 +1,36 @@
 from sqlalchemy.orm import Session
-from app.models.lotoDraw import LotoDraw
+from app.models.lotoDraw import Loto, SuperLoto, GrandLoto
 from app.schemas.lotoDraw import LotoDrawCreate
-
 from collections import Counter
 import random
 
+MODEL_MAPPING = {
+    "loto": Loto,
+    "super": SuperLoto,
+    "grand": GrandLoto,
+}
 
 def create_loto_draw(db: Session, draw: LotoDrawCreate):
-    existing = db.query(LotoDraw).filter_by(
+    model = MODEL_MAPPING.get(draw.game_type.lower())
+    if not model:
+        raise ValueError("Type de jeu invalide")
+
+    exists = db.query(model).filter_by(
+        date_draw=draw.date_draw,
         number_1=draw.number_1,
         number_2=draw.number_2,
         number_3=draw.number_3,
         number_4=draw.number_4,
         number_5=draw.number_5,
-        lucky_number=draw.lucky_number
+        number_6=draw.number_6,
+        lucky_number=draw.lucky_number,
+        game_type=draw.game_type,
     ).first()
 
-    if existing:
-        return existing
+    if exists:
+        return exists
 
-    db_draw = LotoDraw(**draw.model_dump())
+    db_draw = model(**draw.model_dump())
     db.add(db_draw)
     db.commit()
     db.refresh(db_draw)
@@ -27,82 +38,124 @@ def create_loto_draw(db: Session, draw: LotoDrawCreate):
 
 
 def get_loto_draws(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(LotoDraw).offset(skip).limit(limit).all()
+    return db.query(Loto).offset(skip).limit(limit).all()
 
 
 def get_loto_draw(db: Session, draw_id: int):
-    return db.query(LotoDraw).filter(LotoDraw.id == draw_id).first()
+    return db.query(Loto).filter(Loto.id == draw_id).first()
 
 
 def delete_loto_draw(db: Session, draw_id: int):
-    db_draw = db.query(LotoDraw).filter(LotoDraw.id == draw_id).first()
+    db_draw = db.query(Loto).filter(Loto.id == draw_id).first()
     if db_draw:
         db.delete(db_draw)
         db.commit()
     return db_draw
 
 
-# Score haut (1) / bas (0)
-def get_weighted_numbers(db: Session):
-    draws = db.query(LotoDraw).all()
+def get_all_draws(db: Session, sources: list[str]) -> list:
+    draws = []
+    if "loto" in sources:
+        draws.extend(db.query(Loto).all())
+    if "super" in sources:
+        draws.extend(db.query(SuperLoto).all())
+    if "grand" in sources:
+        draws.extend(db.query(GrandLoto).all())
+    return draws
+
+
+def get_weighted_numbers_combined(db: Session, sources: list[str]):
+    from app.models.lotoDraw import Loto, SuperLoto, GrandLoto
+    from collections import Counter
+
+    models = {
+        "loto": Loto,
+        "super": SuperLoto,
+        "grand": GrandLoto,
+    }
+
+    all_draws = []
+    for source in sources:
+        model = models.get(source)
+        if model:
+            all_draws.extend(db.query(model).all())
 
     number_counter = Counter()
     lucky_counter = Counter()
 
-    for draw in draws:
-        nums = [draw.number_1, draw.number_2, draw.number_3, draw.number_4, draw.number_5]
-        number_counter.update(nums)
+    for draw in all_draws:
+
+        numbers = [draw.number_1, draw.number_2, draw.number_3, draw.number_4, draw.number_5]
+        if draw.number_6 is not None:
+            numbers.append(draw.number_6)
+        if draw.additional_number is not None:
+            numbers.append(draw.additional_number)
+
+        number_counter.update(numbers)
+
         if draw.lucky_number is not None:
             lucky_counter[draw.lucky_number] += 1
 
-    all_numbers = set(number_counter.keys()) | set(lucky_counter.keys())
+        for n in numbers:
+            if isinstance(n, int):  # ✅ Exclure les None
+                number_counter[n] += 1
 
-    def normalize(counter: Counter, number: int, min_count: int, max_count: int):
-        count = counter.get(number, 0)
-        if max_count > min_count:
-            return round((count - min_count) / (max_count - min_count), 4)
-        return 1.0 if count > 0 else 0.0
+        if isinstance(draw.lucky_number, int):
+            lucky_counter[draw.lucky_number] += 1
 
-    main_min = min(number_counter.values(), default=0)
-    main_max = max(number_counter.values(), default=0)
-    lucky_min = min(lucky_counter.values(), default=0)
-    lucky_max = max(lucky_counter.values(), default=0)
+    # Gestion des poids (pondération normalisée)
+    def normalize(counter):
+        if not counter:
+            return []
+        max_count = max(counter.values())
+        min_count = min(counter.values())
+        return [
+            {
+                "number": number,
+                "count": count,
+                "weight": round((count - min_count) / (max_count - min_count), 4)
+                if max_count > min_count else 1.0,
+            }
+            for number, count in sorted(counter.items())
+        ]
 
-    result = []
-    for number in sorted(all_numbers):
-        result.append({
-            "number": number,
-            "count": number_counter.get(number, 0),
-            "weight": normalize(number_counter, number, main_min, main_max),
-            "count_lucky_number": lucky_counter.get(number, 0),
-            "weight_lucky_number": normalize(lucky_counter, number, lucky_min, lucky_max),
-        })
+    return {
+        "numbers": normalize(number_counter),
+        "lucky_numbers": normalize(lucky_counter),
+    }
 
-    return result
 
 
 def generate_weighted_grids(db: Session, config: dict):
-    draws = db.query(LotoDraw).all()
+    draws = get_all_draws(db, config.get("includedSources", ["loto", "super", "grand"]))
 
     number_counter = Counter()
     lucky_counter = Counter()
 
     for draw in draws:
-        number_counter.update([draw.number_1, draw.number_2, draw.number_3, draw.number_4, draw.number_5])
-        if draw.lucky_number:
+        numbers = [draw.number_1, draw.number_2, draw.number_3, draw.number_4, draw.number_5]
+        if draw.number_6 is not None:
+            numbers.append(draw.number_6)
+        if draw.additional_number is not None:
+            numbers.append(draw.additional_number)
+
+        number_counter.update([n for n in numbers if isinstance(n, int)])
+
+        if isinstance(draw.lucky_number, int):
             lucky_counter[draw.lucky_number] += 1
 
     all_numbers = list(range(1, 50))
     frequencies = {n: number_counter.get(n, 0) for n in all_numbers}
     max_f = max(frequencies.values() or [1])
-    weights = {n: (frequencies[n] / max_f) + 0.01 for n in all_numbers}  # +0.01 pour éviter les zéros
+    weights = {n: (frequencies[n] / max_f) + 0.01 for n in all_numbers}  # +0.01 pour éviter poids nuls
 
     nb_to_generate = config.get("numbersToGenerate", 5)
-
     existing_grids = set()
     if config.get("shouldCheckExistence"):
         existing_grids = {
-            tuple(sorted([d.number_1, d.number_2, d.number_3, d.number_4, d.number_5]))
+            tuple(sorted([
+                d.number_1, d.number_2, d.number_3, d.number_4, d.number_5
+            ]))
             for d in draws
         }
 
@@ -128,24 +181,22 @@ def generate_weighted_grids(db: Session, config: dict):
 
             if config.get("shouldBalanceEvenOdd", False):
                 pair_goal = round(config.get("favorEven", 50) / 100 * nb_to_generate)
-                if sum(1 for n in grid if n % 2 == 0) != pair_goal:
+                even_count = sum(1 for n in grid if isinstance(n, int) and n % 2 == 0)
+                if even_count != pair_goal:
                     continue
 
             if config.get("shouldBalanceHighLow", False):
-                haut_goal = round(config.get("favorHigh", 50) / 100 * nb_to_generate)
-                if sum(1 for n in grid if n >= 25) != haut_goal:
+                high_goal = round(config.get("favorHigh", 50) / 100 * nb_to_generate)
+                high_count = sum(1 for n in grid if isinstance(n, int) and n >= 25)
+                if high_count != high_goal:
                     continue
 
             if config.get("shouldAvoidLogicalSequences", False):
-                suites = count_consecutive(grid)
-                max_suites = round(config.get("sequenceTolerance", 2) / 100 * nb_to_generate)
-                if suites > max_suites:
+                if count_consecutive(grid) > round(config.get("sequenceTolerance", 10) / 100 * nb_to_generate):
                     continue
 
             if config.get("shouldAvoidRoundNumbers", False):
-                ronds = count_round_numbers(grid)
-                max_ronds = round(config.get("roundNumberTolerance", 2) / 100 * nb_to_generate)
-                if ronds > max_ronds:
+                if count_round_numbers(grid) > round(config.get("roundNumberTolerance", 50) / 100 * nb_to_generate):
                     continue
 
             def generate_lucky_number():
@@ -164,7 +215,7 @@ def generate_weighted_grids(db: Session, config: dict):
 
             score = 0
             if config.get("shouldEvaluateScore"):
-                score = round(sum(weights[n] for n in grid), 4)
+                score = round(sum(weights[n] for n in grid if isinstance(n, int)), 4)
 
             return {
                 "numbers": grid,
@@ -176,9 +227,9 @@ def generate_weighted_grids(db: Session, config: dict):
 
 
 def count_consecutive(numbers: list[int]) -> int:
-    sorted_nums = sorted(numbers)
-    return sum(1 for i in range(len(sorted_nums) - 1) if sorted_nums[i + 1] - sorted_nums[i] == 1)
+    filtered = sorted([n for n in numbers if isinstance(n, int)])
+    return sum(1 for i in range(len(filtered) - 1) if filtered[i + 1] - filtered[i] == 1)
 
 
 def count_round_numbers(numbers: list[int]) -> int:
-    return sum(1 for n in numbers if n % 10 == 0)
+    return sum(1 for n in numbers if isinstance(n, int) and n % 10 == 0)

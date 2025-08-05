@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-
 from typing import List
 from app.schemas.user import UserCreate, UserOut
 from app.schemas.lotoDraw import LotoDrawCreate, LotoDraw, BulkLotoDraws, GridGenerationConfig
@@ -10,7 +9,8 @@ from app.database import SessionLocal
 
 router = APIRouter()
 
-# Dépendance pour la base de données
+# ---------- DB ----------
+
 def get_db():
     db = SessionLocal()
     try:
@@ -18,13 +18,13 @@ def get_db():
     finally:
         db.close()
 
-# ----------- USERS ------------
+# ---------- USERS ----------
 
 @router.post("/users", response_model=UserOut)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
     return crud_user.create_user(db, user)
 
-@router.get("/users", response_model=list[UserOut])
+@router.get("/users", response_model=List[UserOut])
 def list_users(db: Session = Depends(get_db)):
     return crud_user.get_users(db)
 
@@ -35,7 +35,36 @@ def get_user(email: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
     return user
 
-# ----------- DRAWS (LOTO) ------------
+# ---------- STATS ----------
+
+@router.get("/draws/weights")
+def get_weighted_stats(
+    sources: str = "loto,super,grand",
+    db: Session = Depends(get_db)
+):
+    try:
+        sources_list = [s.strip().lower() for s in sources.split(",") if s.strip()]
+        return crud_loto.get_weighted_numbers_combined(db, sources=sources_list)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------- GENERATION ----------
+
+@router.post("/draws/generate")
+def generate_draws(config: GridGenerationConfig, db: Session = Depends(get_db)):
+    try:
+        return crud_loto.generate_weighted_grids(db, config.model_dump())
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+# ---------- DRAWS ----------
 
 @router.post("/draws/", response_model=List[LotoDraw])
 def create_draws(draws: List[LotoDrawCreate], db: Session = Depends(get_db)):
@@ -48,39 +77,25 @@ def create_draws(draws: List[LotoDrawCreate], db: Session = Depends(get_db)):
 @router.post("/draws/bulk", response_model=List[LotoDraw])
 def create_draws_bulk(payload: BulkLotoDraws, db: Session = Depends(get_db)):
     results = []
-
-    for draw in payload.root.values():  # .root car on utilise RootModel
+    for draw in payload.root.values():
         loto = LotoDrawCreate(
+            date_draw=None,  # à ajuster selon les besoins
             number_1=draw[0],
             number_2=draw[1],
             number_3=draw[2],
             number_4=draw[3],
             number_5=draw[4],
-            lucky_number=draw[5]  # ← None accepté ici
+            additional_number=draw[5],
+            lucky_number=draw[6],
+            game_type="loto",  # ou à passer dynamiquement
         )
         created = crud_loto.create_loto_draw(db, loto)
         results.append(created)
-
     return results
 
-@router.get("/draws/", response_model=list[LotoDraw])
+@router.get("/draws", response_model=List[LotoDraw])
 def read_draws(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return crud_loto.get_loto_draws(db, skip=skip, limit=limit)
-
-## start algo
-
-@router.get("/draws/frequency")
-def get_global_frequency(db: Session = Depends(get_db)):
-    return crud_loto.get_global_number_frequency(db)
-
-@router.get("/draws/weights")
-def get_weighted_draws(db: Session = Depends(get_db)):
-    return crud_loto.get_weighted_numbers(db)
-
-@router.post("/draws/generate")
-def generate_draws(config: GridGenerationConfig, db: Session = Depends(get_db)):
-    return crud_loto.generate_weighted_grids(db, config.model_dump())
-## fin
 
 @router.get("/draws/{draw_id}", response_model=LotoDraw)
 def read_draw(draw_id: int, db: Session = Depends(get_db)):
