@@ -65,46 +65,25 @@ def get_all_draws(db: Session, sources: list[str]) -> list:
 
 
 def get_weighted_numbers_combined(db: Session, sources: list[str]):
-    from app.models.lotoDraw import Loto, SuperLoto, GrandLoto
-    from collections import Counter
-
-    models = {
-        "loto": Loto,
-        "super": SuperLoto,
-        "grand": GrandLoto,
-    }
-
-    all_draws = []
-    for source in sources:
-        model = models.get(source)
-        if model:
-            all_draws.extend(db.query(model).all())
+    draws = get_all_draws(db, sources)
 
     number_counter = Counter()
     lucky_counter = Counter()
 
-    for draw in all_draws:
-
+    for draw in draws:
         numbers = [draw.number_1, draw.number_2, draw.number_3, draw.number_4, draw.number_5]
         if draw.number_6 is not None:
             numbers.append(draw.number_6)
         if draw.additional_number is not None:
             numbers.append(draw.additional_number)
 
-        number_counter.update(numbers)
+        number_counter.update([n for n in numbers if isinstance(n, int)])
 
-        if draw.lucky_number is not None:
+        if isinstance(draw.lucky_number, int) and 1 <= draw.lucky_number <= 10:
             lucky_counter[draw.lucky_number] += 1
 
-        for n in numbers:
-            if isinstance(n, int):  # ✅ Exclure les None
-                number_counter[n] += 1
-
-        if isinstance(draw.lucky_number, int):
-            lucky_counter[draw.lucky_number] += 1
-
-    # Gestion des poids (pondération normalisée)
-    def normalize(counter):
+    # Normalisation
+    def normalize(counter: Counter):
         if not counter:
             return []
         max_count = max(counter.values())
@@ -114,14 +93,14 @@ def get_weighted_numbers_combined(db: Session, sources: list[str]):
                 "number": number,
                 "count": count,
                 "weight": round((count - min_count) / (max_count - min_count), 4)
-                if max_count > min_count else 1.0,
+                if max_count > min_count else 1.0
             }
             for number, count in sorted(counter.items())
         ]
 
     return {
-        "numbers": normalize(number_counter),
-        "lucky_numbers": normalize(lucky_counter),
+        "numbers": normalize(number_counter),        # ✅ de 1 à 49
+        "lucky_numbers": normalize(lucky_counter)    # ✅ de 1 à 10
     }
 
 
