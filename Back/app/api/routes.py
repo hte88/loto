@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List
 from app.schemas.user import UserCreate, UserOut
@@ -6,6 +6,7 @@ from app.schemas.lotoDraw import LotoDrawCreate, LotoDraw, BulkLotoDraws, GridGe
 from app.crud import user as crud_user
 from app.crud import lotoDraw as crud_loto
 from app.database import SessionLocal
+from datetime import datetime
 
 router = APIRouter()
 
@@ -40,11 +41,13 @@ def get_user(email: str, db: Session = Depends(get_db)):
 @router.get("/draws/weights")
 def get_weighted_stats(
     sources: str = "loto,super,grand",
+    start_date: datetime = Query(None),
+    end_date: datetime = Query(None),
     db: Session = Depends(get_db)
 ):
     try:
         sources_list = [s.strip().lower() for s in sources.split(",") if s.strip()]
-        return crud_loto.get_weighted_numbers_combined(db, sources=sources_list)
+        return crud_loto.get_weighted_numbers_combined(db, sources=sources_list, start_date=start_date, end_date=end_date)
     except Exception as e:
         import traceback
         traceback.print_exc()

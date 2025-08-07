@@ -53,19 +53,45 @@ def delete_loto_draw(db: Session, draw_id: int):
     return db_draw
 
 
-def get_all_draws(db: Session, sources: list[str]) -> list:
+def get_all_draws(db: Session, sources: list[str], start_date=None, end_date=None) -> tuple[list, dict]:
     draws = []
+    stats_count = {}
+
     if "loto" in sources:
-        draws.extend(db.query(Loto).all())
+        query = db.query(Loto)
+        if start_date:
+            query = query.filter(Loto.date_draw >= start_date)
+        if end_date:
+            query = query.filter(Loto.date_draw <= end_date)
+        loto_draws = query.all()
+        draws.extend(loto_draws)
+        stats_count["loto"] = len(loto_draws)
+
     if "super" in sources:
-        draws.extend(db.query(SuperLoto).all())
+        query = db.query(SuperLoto)
+        if start_date:
+            query = query.filter(SuperLoto.date_draw >= start_date)
+        if end_date:
+            query = query.filter(SuperLoto.date_draw <= end_date)
+        super_draws = query.all()
+        draws.extend(super_draws)
+        stats_count["super"] = len(super_draws)
+
     if "grand" in sources:
-        draws.extend(db.query(GrandLoto).all())
-    return draws
+        query = db.query(GrandLoto)
+        if start_date:
+            query = query.filter(GrandLoto.date_draw >= start_date)
+        if end_date:
+            query = query.filter(GrandLoto.date_draw <= end_date)
+        grand_draws = query.all()
+        draws.extend(grand_draws)
+        stats_count["grand"] = len(grand_draws)
+
+    return draws, stats_count
 
 
-def get_weighted_numbers_combined(db: Session, sources: list[str]):
-    draws = get_all_draws(db, sources)
+def get_weighted_numbers_combined(db: Session, sources: list[str], start_date=None, end_date=None):
+    draws = get_all_draws(db, sources, start_date, end_date)
 
     number_counter = Counter()
     lucky_counter = Counter()
@@ -106,7 +132,14 @@ def get_weighted_numbers_combined(db: Session, sources: list[str]):
 
 
 def generate_weighted_grids(db: Session, config: dict):
-    draws = get_all_draws(db, config.get("includedSources", ["loto", "super", "grand"]))
+    print("🔍 Configuration reçue :", config)  # ou logger.info(...)
+
+    draws, source_counts = get_all_draws(
+        db,
+        sources=config.get("includedSources", ["loto", "super", "grand"]),
+        start_date=config.get("start_date"),
+        end_date=config.get("end_date")
+    )
 
     number_counter = Counter()
     lucky_counter = Counter()
@@ -118,22 +151,27 @@ def generate_weighted_grids(db: Session, config: dict):
         if draw.additional_number is not None:
             numbers.append(draw.additional_number)
 
-        number_counter.update([n for n in numbers if isinstance(n, int)])
+        number_counter.update([n for n in numbers if isinstance(n, int) is not None])
 
-        if isinstance(draw.lucky_number, int):
+        if isinstance(draw.lucky_number, int) is not None:
             lucky_counter[draw.lucky_number] += 1
 
     all_numbers = list(range(1, 50))
     frequencies = {n: number_counter.get(n, 0) for n in all_numbers}
-    max_f = max(frequencies.values() or [1])
-    weights = {n: (frequencies[n] / max_f) + 0.01 for n in all_numbers}  # +0.01 pour éviter poids nuls
+    max_f = max(frequencies.values(), default=0)
+    if max_f == 0:
+        weights = {n: 1 for n in all_numbers}
+    else:
+        weights = {n: (frequencies[n] / max_f) + 0.01 for n in all_numbers}
 
     nb_to_generate = config.get("numbersToGenerate", 5)
     existing_grids = set()
     if config.get("shouldCheckExistence"):
         existing_grids = {
             tuple(sorted([
-                d.number_1, d.number_2, d.number_3, d.number_4, d.number_5
+                d.number_1, d.number_2, d.number_3,
+                d.number_4, d.number_5, d.number_6 is not None,
+                d.additional_number is not None
             ]))
             for d in draws
         }
@@ -142,7 +180,7 @@ def generate_weighted_grids(db: Session, config: dict):
         attempts = 0
         while True:
             attempts += 1
-            if attempts > 1000:
+            if attempts > 3000:
                 raise Exception("Impossible de générer une grille valide selon les critères.")
 
             grid = config.get("includeNumbers", []).copy()
@@ -184,11 +222,20 @@ def generate_weighted_grids(db: Session, config: dict):
                 possible = [i for i in range(1, 11) if i not in config.get("excludeLucky", [])]
                 if not possible:
                     return None
-                base_weights = [lucky_counter.get(i, 1) for i in possible]
+
+                lucky_frequencies = {i: lucky_counter.get(i, 0) for i in range(1, 11)}
+                max_lucky = max(lucky_frequencies.values(), default=0)
+
+                if max_lucky == 0:
+                    lucky_weights = [1] * len(possible)
+                else:
+                    lucky_weights = [(lucky_counter.get(i, 0) / max_lucky) + 0.01 for i in possible]
+
                 favori = config.get("favorLucky")
                 if favori in possible:
-                    base_weights[possible.index(favori)] *= 2
-                return random.choices(possible, weights=base_weights)[0]
+                    lucky_weights[possible.index(favori)] *= 2
+
+                return random.choices(possible, weights=lucky_weights)[0]
 
             lucky_number = generate_lucky_number()
 
@@ -199,6 +246,8 @@ def generate_weighted_grids(db: Session, config: dict):
             return {
                 "numbers": grid,
                 "lucky_number": lucky_number,
+                "source_counts": source_counts,
+                "total_draws_used": len(draws),
                 **({"score": score} if config.get("shouldEvaluateScore") else {})
             }
 

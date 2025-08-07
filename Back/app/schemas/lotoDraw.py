@@ -53,3 +53,5 @@ class GridGenerationConfig(BaseModel):
     excludeLucky: List[int] = []
     favoriserFrequence: int = 100
     includedSources: List[str] = ["loto", "super", "grand"]
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
