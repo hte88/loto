@@ -1,0 +1,4 @@
+<template>
+    <LotoStatsWeigths />
+<!--     <LotoStatsFrequency />
+ --></template>

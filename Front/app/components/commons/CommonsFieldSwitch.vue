@@ -2,16 +2,16 @@
 import { boolean, z } from 'zod'
 
 const {
-    maxTolerance,
-    minTolerance,
+    maxTolerance = null,
+    minTolerance = null,
     title,
     slider = { min: 0, max: 100, step: 1 },
     error,
     label
 } = defineProps<{
     title: string
-    maxTolerance: number
-    minTolerance: number
+    maxTolerance?: number
+    minTolerance?: number
     slider?: {
         min: number
         max: number
@@ -22,7 +22,7 @@ const {
 }>()
 
 const should = defineModel<boolean>('should', { required: true })
-const tolerance = defineModel<number>('tolerance', { required: true })
+const tolerance = defineModel<number>('tolerance')
 
 const schema = z.object({
     should: z.boolean(),
@@ -30,10 +30,13 @@ const schema = z.object({
 })
 
 const isToleranceInvalid = computed(() => {
+    if (!tolerance.value || !minTolerance || !maxTolerance) {
+        return
+    }
     return tolerance.value < minTolerance || tolerance.value > maxTolerance
 })
 const labelField = computed(() => {
-return label ? `${label} (${tolerance.value})` : `Favoriser a (${tolerance.value}%)`
+    return label ? `${label} (${tolerance.value})` : `Favoriser a (${tolerance.value}%)`
 })
 </script>
 
@@ -42,14 +45,15 @@ return label ? `${label} (${tolerance.value})` : `Favoriser a (${tolerance.value
         attach
         :state="{ should, tolerance }"
         :schema="schema"
-        class="flex flex-col gap-4 bg-gray-600 rounded-xl p-3"
+        class="flex flex-col gap-2 rounded-xl p-3 transition-colors ease-linear duration-300"
+        :class="should ? 'bg-white text-black' : 'bg-black-600 text-white'"
     >
         <div class="flex flex-row justify-between items-center">
             <p class="text-sm font-medium">{{ title }}</p>
             <USwitch v-model="should" size="xl" />
         </div>
-        <template v-if="should">
-            <UFormField :label="labelField" name="tolerance">
+        <template v-if="should && tolerance">
+            <UFormField :label="labelField" name="tolerance" :ui="{ label: 'text-black-600' }">
                 <USlider
                     v-model="tolerance"
                     :color="isToleranceInvalid ? 'warning' : 'primary'"

@@ -4,14 +4,11 @@ import type { TableColumn } from '@nuxt/ui'
 
 const config = useRuntimeConfig()
 
-const { data: weights, execute: execWeights } = useFetch('api/draws/weights', {
+const { data: weights } = useFetch('api/draws/weights', {
     key: 'get-draws-weights',
     method: 'GET',
+    query: { sources: 'loto,super', start_date: '2025-07-01', end_date: '2025-08-01' },
     baseURL: config.public.BASE_URL
-})
-
-onMounted(() => {
-    execWeights()
 })
 
 const UButton = resolveComponent('UButton')
@@ -92,7 +89,7 @@ const columns: TableColumn<Weight>[] = [
             <h2 class="text-xl">Palmarès des numéros</h2>
             <p class="mb-4 text-sm">Tout tirage confondu</p>
         </div>
-        <UTable :data="weights?.numbers ?? []" :columns="columns" sticky class="h-96">
+        <UTable :data="[...weights?.numbers] ?? []" :columns="columns" sticky class="h-96">
             <template #expanded="{ row }">
                 <pre>{{ row.original }}</pre>
             </template>
@@ -112,7 +109,7 @@ const columns: TableColumn<Weight>[] = [
             <h2 class="text-xl">Palmarès des numéros chance</h2>
             <p class="mb-4 text-sm">Tout tirage confondu</p>
         </div>
-        <UTable :data="weights?.lucky_numbers ?? []" :columns="columns" sticky class="h-96">
+        <UTable :data="[...weights?.lucky_numbers] ?? []" :columns="columns" sticky class="h-96">
             <template #expanded="{ row }">
                 <pre>{{ row.original }}</pre>
             </template>

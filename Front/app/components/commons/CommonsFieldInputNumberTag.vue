@@ -49,6 +49,8 @@ function validateTag(value: string): boolean {
     error.value = null
     return true
 }
+
+const hasNumber = computed(() => includeNumbersModel.value.length > 0)
 </script>
 
 <template>
@@ -56,9 +58,10 @@ function validateTag(value: string): boolean {
         attach
         :state="{ list: lotteryConfig }"
         :schema="schema"
-        class="flex flex-col gap-4 bg-gray-600 rounded-xl p-3"
+        class="flex flex-col gap-2 rounded-xl p-3 transition-colors ease-linear duration-300"
+        :class="hasNumber ? 'bg-white text-black' : 'bg-black-600 text-white'"
     >
-        <UFormField :label="title" name="list">
+        <UFormField :label="title" name="list" :ui="{ label: hasNumber ? 'text-black-600' : 'text-white' }">
             <UInputTags
                 v-model="includeNumbersModel"
                 size="xl"
