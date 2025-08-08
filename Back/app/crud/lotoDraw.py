@@ -93,6 +93,7 @@ def get_all_draws(db: Session, sources: list[str], start_date=None, end_date=Non
 def get_weighted_numbers_combined(db: Session, sources: list[str], start_date=None, end_date=None):
     draws, stats_count  = get_all_draws(db, sources, start_date, end_date)
 
+    total_draws = len(draws)
     number_counter = Counter()
     lucky_counter = Counter()
 
@@ -109,26 +110,29 @@ def get_weighted_numbers_combined(db: Session, sources: list[str], start_date=No
             lucky_counter[draw.lucky_number] += 1
 
     # Normalisation
-    def normalize(counter: Counter):
-        if not counter:
+    def normalize(counter: Counter, total_draws: int):
+        if not counter or total_draws == 0:
             return []
+
         max_count = max(counter.values())
         min_count = min(counter.values())
+
         return [
             {
                 "number": number,
                 "count": count,
                 "weight": round((count - min_count) / (max_count - min_count), 4)
-                if max_count > min_count else 1.0
-            }
+                if max_count > min_count else 1.0,
+                "percentage": round((count / total_draws) * 100, 2)
+  }
             for number, count in sorted(counter.items())
         ]
 
     return {
-        "numbers": normalize(number_counter),        # ✅ de 1 à 49
-        "lucky_numbers": normalize(lucky_counter),    # ✅ de 1 à 10
+        "numbers": normalize(number_counter, total_draws),        # ✅ de 1 à 49
+        "lucky_numbers": normalize(lucky_counter, total_draws),    # ✅ de 1 à 10
         "source_counts": stats_count,
-        "total_draws_used": len(draws)
+        "total_draws_used": total_draws
     }
 
 
