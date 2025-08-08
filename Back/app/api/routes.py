@@ -12,7 +12,7 @@ router = APIRouter()
 
 # ---------- DB ----------
 
-def get_db():
+def get_db() -> Session:
     db = SessionLocal()
     try:
         yield db
