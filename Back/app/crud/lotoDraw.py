@@ -91,7 +91,7 @@ def get_all_draws(db: Session, sources: list[str], start_date=None, end_date=Non
 
 
 def get_weighted_numbers_combined(db: Session, sources: list[str], start_date=None, end_date=None):
-    draws = get_all_draws(db, sources, start_date, end_date)
+    draws, stats_count  = get_all_draws(db, sources, start_date, end_date)
 
     number_counter = Counter()
     lucky_counter = Counter()
@@ -126,7 +126,9 @@ def get_weighted_numbers_combined(db: Session, sources: list[str], start_date=No
 
     return {
         "numbers": normalize(number_counter),        # ✅ de 1 à 49
-        "lucky_numbers": normalize(lucky_counter)    # ✅ de 1 à 10
+        "lucky_numbers": normalize(lucky_counter),    # ✅ de 1 à 10
+        "source_counts": stats_count,
+        "total_draws_used": len(draws)
     }
 
 
