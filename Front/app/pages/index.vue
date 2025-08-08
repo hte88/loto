@@ -52,11 +52,11 @@ const lotteryConfig = ref({
     shouldCheckExistence: true,
     shouldEvaluateScore: true,
     shouldGenerateLucky: true, // weighted selection by past frequency
-    favorLucky: 6,
+    favorLucky: 1,
     excludeLucky: [],
     gridsToGenerate: 1,
     numbersToGenerate: 5,
-    includedSources: ["loto", "super", "grand"]
+    includedSources: ['loto', 'super', 'grand']
 })
 
 const { data: dgenerate, execute: execGenerate } = useFetch('api/draws/generate', {
@@ -74,6 +74,8 @@ const { data: dgenerate, execute: execGenerate } = useFetch('api/draws/generate'
 })
 
 function execute() {
+    console.log('df')
+
     isDrawerOpen.value = false
     execGenerate()
 }
@@ -136,7 +138,7 @@ watch(
         >
             <div class="text-center">
                 <h1
-                    class="text-pretty tracking-tight font-bold text-5xl sm:text-7xl bg-gradient-to-r from-blue-500 to-rose-400 bg-clip-text text-transparent"
+                    class="text-pretty w-fit mx-auto tracking-tight font-bold text-5xl sm:text-7xl bg-gradient-to-r from-cyan-600 to-error bg-clip-text text-transparent"
                 >
                     Loto Cheat
                 </h1>
@@ -145,7 +147,8 @@ watch(
                 </p>
             </div>
             <div class="flex flex-col gap-4 w-4xl mx-auto">
-                <section class="justify-center flex">
+                <section class="justify-center flex flex-col items-center gap-4">
+                    <h2 class="text-xl text-black-700">1. Premiere etape</h2>
                     <UDrawer
                         v-model:open="isDrawerOpen"
                         direction="right"
@@ -153,23 +156,27 @@ watch(
                         description="don't delete me"
                         :handle="false"
                         :dismissible="false"
-                        :ui="{ container: 'bg-black-500' }"
+                        :ui="{ container: 'bg-black-200 w-lg' }"
                     >
                         <UButton
                             label="Configuration"
-                            variant="subtle"
-                            size="xl"
+                            variant="solid"
                             trailing-icon="i-lucide-cog"
+                            :ui="{
+                                base: 'h-16 text-2xl w-fit',
+                                trailingIcon: 'text-white size-10'
+                            }"
                         />
                         <template #title />
                         <template #description />
                         <template #header>
                             <div class="flex flex-row justify-between items-center">
-                                <h2 class="text-xl font-semibold">Configuration</h2>
+                                <h2 class="text-xl font-semibold text-black">Configuration</h2>
                                 <UButton
                                     color="neutral"
                                     variant="ghost"
                                     icon="i-lucide-x"
+                                    :ui="{ leadingIcon: 'text-black' }"
                                     @click="isDrawerOpen = false"
                                 />
                             </div>
@@ -179,6 +186,7 @@ watch(
                         </template>
                     </UDrawer>
                 </section>
+                <h2 class="text-xl text-black-700 mx-auto">2. Resultat(s)</h2>
 
                 <div
                     v-for="(
@@ -188,6 +196,7 @@ watch(
                     class="flex flex-row gap-4 mx-auto w-fit"
                 >
                     <!-- Numéros principaux -->
+
                     <UCheckbox
                         v-for="(num, numIndex) in numbers"
                         :key="`${lineIndex}-${num}`"
@@ -197,10 +206,10 @@ watch(
                         variant="card"
                         :label="String(num)"
                         :ui="{
-                            root: 'size-14',
-                            base: 'justify-center flex',
+                            root: 'size-14 bg-primary-600 rounded-full',
+                            base: 'justify-center flex bg-black-200',
                             wrapper: 'h-full',
-                            label: 'justify-center items-center h-full flex'
+                            label: 'justify-center items-center h-full flex text-white text-xl'
                         }"
                     />
 
@@ -212,16 +221,21 @@ watch(
                         variant="card"
                         :label="String(lucky_number)"
                         :ui="{
-                            root: 'size-14 ml-4',
-                            base: 'justify-center flex',
+                            root: 'size-14 bg-error rounded-full',
+                            base: 'justify-center flex bg-black-200',
                             wrapper: 'h-full',
-                            label: 'justify-center items-center h-full flex'
+                            label: 'justify-center items-center h-full flex text-white text-xl'
                         }"
                     />
-                    <ul v-show="visibleItems.has(`${lineIndex}-info`)" class="text-xs flex flex-col justify-center">
+                    <ul
+                        v-show="visibleItems.has(`${lineIndex}-info`)"
+                        class="text-xs flex flex-col justify-center text-black-600"
+                    >
                         <li><b>Tirage :</b> {{ numbers.join(' ') }} {{ lucky_number }}</li>
                         <li><b>Score:</b> {{ score }}</li>
-                        <li>Calculé sur <b>{{ total_draws_used }}</b> tirages</li>
+                        <li>
+                            Calculé sur <b>{{ total_draws_used }}</b> tirages
+                        </li>
                     </ul>
                 </div>
 

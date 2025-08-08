@@ -112,7 +112,7 @@
     font-family: 'Inter', sans-serif;
     --ui-primary: var(--color-primary-600);
     --ui-secondary: var(--color-tertiary-500);
-    --ui-text: var(--color-content-primary);
+    --ui-text: var(--color-black-800);
     --ui-text-highlighted: var(--color-content-secondary);
     --ui-border-accented: var(--color-black-200);
 }

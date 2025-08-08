@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { boolean, z } from 'zod'
+import { z } from 'zod'
 
 const {
     maxTolerance = null,
@@ -26,7 +26,7 @@ const tolerance = defineModel<number>('tolerance')
 
 const schema = z.object({
     should: z.boolean(),
-    tolerance: z.number().min(0).max(100)
+    tolerance: z.number().min(0).max(100).optional()
 })
 
 const isToleranceInvalid = computed(() => {
@@ -45,8 +45,8 @@ const labelField = computed(() => {
         attach
         :state="{ should, tolerance }"
         :schema="schema"
-        class="flex flex-col gap-2 rounded-xl p-3 transition-colors ease-linear duration-300"
-        :class="should ? 'bg-white text-black' : 'bg-black-600 text-white'"
+        class="flex flex-col gap-2 text-black rounded-xl p-3 transition-colors ease-linear duration-300"
+        :class="should ? 'bg-black-200' : 'bg-black-100'"
     >
         <div class="flex flex-row justify-between items-center">
             <p class="text-sm font-medium">{{ title }}</p>

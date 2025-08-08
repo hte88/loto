@@ -4,10 +4,23 @@ import type { TableColumn } from '@nuxt/ui'
 
 const config = useRuntimeConfig()
 
+const start_date = ref('2019-07-14')
+const end_date = ref('2025-08-01')
+const items = ref(['loto', 'super', 'grand'])
+const value = ref(['loto', 'super', 'grand'])
+
+const queries = computed(() => ({
+    sources: value.value.join(','),
+    start_date: start_date.value,
+    end_date: end_date.value
+}))
+
 const { data: weights } = useFetch('api/draws/weights', {
     key: 'get-draws-weights',
     method: 'GET',
-    query: { sources: 'loto,super', start_date: '2025-07-01', end_date: '2025-08-01' },
+    immediate: true,
+    watch: [start_date, end_date, value],
+    query: queries,
     baseURL: config.public.BASE_URL
 })
 
@@ -84,12 +97,22 @@ const columns: TableColumn<Weight>[] = [
 </script>
 
 <template>
-    <div class="flex-1 divide-y divide-accented w-full">
+    <div class="flex-1 divide-y divide-accented w-full mt-60">
         <div class="flex flex-col items-center gap-2 px-4 py-3.5 overflow-x-auto">
             <h2 class="text-xl">Palmarès des numéros</h2>
             <p class="mb-4 text-sm">Tout tirage confondu</p>
         </div>
-        <UTable :data="[...weights?.numbers] ?? []" :columns="columns" sticky class="h-96">
+        <div class="flex justify-between space-x-2 gap-4 bg-white text-black rounded-xl p-3">
+            <CommonsFieldDate v-model="start_date" label="Debut" />
+            <CommonsFieldDate v-model="end_date" label="Fin" />
+            <UFormField
+                label="Type de tirage"
+                :ui="{ container: 'w-full', root: 'w-full', label: 'text-black-600' }"
+            >
+                <USelect v-model="value" multiple :items="items" size="lg" class="w-full py-2.5 font-semibold capitalize" />
+            </UFormField>
+        </div>
+        <UTable :data="weights?.numbers ?? []" :columns="columns" sticky class="h-96">
             <template #expanded="{ row }">
                 <pre>{{ row.original }}</pre>
             </template>
@@ -109,7 +132,7 @@ const columns: TableColumn<Weight>[] = [
             <h2 class="text-xl">Palmarès des numéros chance</h2>
             <p class="mb-4 text-sm">Tout tirage confondu</p>
         </div>
-        <UTable :data="[...weights?.lucky_numbers] ?? []" :columns="columns" sticky class="h-96">
+        <UTable :data="weights?.lucky_numbers ?? []" :columns="columns" sticky class="h-96">
             <template #expanded="{ row }">
                 <pre>{{ row.original }}</pre>
             </template>

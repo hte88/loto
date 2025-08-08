@@ -831,7 +831,7 @@ export default defineAppConfig({
         accordion: {
             slots: {
                 root: 'w-full gap-3.5 grid',
-                item: 'bg-white rounded-xl flex flex-col md:p-8 p-4 gap-4 border-b border-(--ui-border) last:border-b-0',
+                item: 'bg-white rounded-xl flex flex-col p-4  border-b border-(--ui-border) last:border-b-0',
                 header: 'flex',
                 trigger:
                     'group flex-1 flex items-center gap-1.5 py-0 font-medium text-sm focus-visible:outline-(--ui-primary) min-w-0',
