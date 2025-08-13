@@ -12,6 +12,14 @@ const lotteryConfig = defineModel<any>({ required: true })
             title="Favoriser ceux qui ont un score de probabilité élevé"
         />
         <CommonsFieldSwitch
+            v-model:should="lotteryConfig.shouldEvaluatePercentage"
+            title="Favoriser ceux qui ont un score de sortie élevée"
+        />
+        <CommonsFieldSwitch
+            v-model:should="lotteryConfig.shouldEvaluateWeight"
+            title="Favoriser ceux qui ont un score pondéré élevé"
+        />
+        <CommonsFieldSwitch
             v-model:should="lotteryConfig.shouldGenerateLucky"
             title="Generer un numero chance avec un score de probabilité élevé"
         />

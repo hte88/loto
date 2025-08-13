@@ -31,6 +31,7 @@ const { data: weights, execute: execWeights } = useFetch('api/draws/weights', {
     method: 'GET',
     baseURL: config.public.BASE_URL
 }) */
+type generationMode = 'score' | 'weight' | 'percentage' | 'random'
 
 const lotteryConfig = ref({
     start_date: '1976-01-01',
@@ -51,6 +52,8 @@ const lotteryConfig = ref({
     excludeNumbers: [],
     shouldCheckExistence: true,
     shouldEvaluateScore: true,
+    shouldEvaluatePercentage: false,
+    shouldEvaluateWeight: false,
     shouldGenerateLucky: true, // weighted selection by past frequency
     favorLucky: 1,
     excludeLucky: [],
@@ -74,8 +77,6 @@ const { data: dgenerate, execute: execGenerate } = useFetch('api/draws/generate'
 })
 
 function execute() {
-    console.log('df')
-
     isDrawerOpen.value = false
     execGenerate()
 }
@@ -132,20 +133,100 @@ watch(
 </script>
 
 <template>
-    <div class="h-screen pt-20">
+    <div class="inline-flex">
+        <div class="border-t-2 flex flex-row h-auto">
+            <aside class="bg-slate-50 h-full w-96 border-slate-200 border-r">
+                <LotoForm v-model="lotteryConfig" @on-submit="execute()" />
+            </aside>
+            <div class="size-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col flex-1">
+                <div
+                    class="relative size-full flex flex-col flex-1 border-slate-200 border rounded-lg gap-4 p-4"
+                >
+                    <div class="flex justify-center items-center flex-col gap-4">
+                        <p>
+                            Lorem ipsum dolor sit amet consectetur adipisicing elit. Nam adipisci
+                            quaerat ut!
+                        </p>
+                        <UPopover>
+                            <UButton
+                                label="Récapitulatif"
+                                color="neutral"
+                                variant="subtle"
+                                :ui="{ base: 'w-fit' }"
+                            />
+                            <template #content>
+                                <LotoConfigTable :lottery-config="lotteryConfig" />
+                            </template>
+                        </UPopover>
+                        <UButton
+                            size="xl"
+                            label="GENERER"
+                            :ui="{ base: 'w-fit' }"
+                            @click="execute()"
+                        />
+                    </div>
+                    <h3
+                        v-if="result?.length > 0"
+                        class="text-pretty tracking-tight font-bold text-2xl mb-2 bg-gradient-to-r from-cyan-600 to-error bg-clip-text text-transparent"
+                    >
+                        Résultat(s)
+                    </h3>
+                    <div
+                        v-for="(
+                            { numbers, lucky_number, score, total_draws_used }, lineIndex
+                        ) in result"
+                        :key="lineIndex"
+                        class="flex flex-row gap-4"
+                    >
+                        <UCheckbox
+                            v-for="(num, numIndex) in numbers"
+                            :key="`${lineIndex}-${num}`"
+                            v-show="visibleItems.has(`${lineIndex}-${numIndex}`)"
+                            class="fade-in"
+                            indicator="hidden"
+                            variant="card"
+                            :label="String(num)"
+                            :ui="{
+                                root: 'size-14 bg-primary-600 rounded-full',
+                                base: 'justify-center flex bg-black-200',
+                                wrapper: 'h-full',
+                                label: 'justify-center items-center h-full flex text-white text-xl'
+                            }"
+                        />
+
+                        <UCheckbox
+                            v-show="visibleItems.has(`${lineIndex}-lucky`)"
+                            class="fade-in"
+                            indicator="hidden"
+                            variant="card"
+                            :label="String(lucky_number)"
+                            :ui="{
+                                root: 'size-14 bg-error rounded-full',
+                                base: 'justify-center flex bg-black-200',
+                                wrapper: 'h-full',
+                                label: 'justify-center items-center h-full flex text-white text-xl'
+                            }"
+                        />
+                        <ul
+                            v-show="visibleItems.has(`${lineIndex}-info`)"
+                            class="text-xs flex flex-col justify-center text-black-600"
+                        >
+                            <li><b>Tirage :</b> {{ numbers.join(' ') }} {{ lucky_number }}</li>
+                            <li><b>Score:</b> {{ score }}</li>
+                            <li>
+                                Calculé sur <b>{{ total_draws_used }}</b> tirages
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--   <div class="h-screen pt-20">
         <div
             class="w-full max-w-(--ui-container) mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:grid gap-16 sm:gap-y-24 lg:items-center !pb-20 py-24 sm:py-32 lg:py-40"
         >
-            <div class="text-center">
-                <h1
-                    class="text-pretty w-fit mx-auto tracking-tight font-bold text-5xl sm:text-7xl bg-gradient-to-r from-cyan-600 to-error bg-clip-text text-transparent"
-                >
-                    Loto Cheat
-                </h1>
-                <p class="text-lg sm:text-xl/8 text-muted text-pretty mt-6">
-                    commodo. Elit sunt amet fugiat veniam occaecat.
-                </p>
-            </div>
+
             <div class="flex flex-col gap-4 w-4xl mx-auto">
                 <section class="justify-center flex flex-col items-center gap-4">
                     <h2 class="text-xl text-black-700">1. Premiere etape</h2>
@@ -195,7 +276,6 @@ watch(
                     :key="lineIndex"
                     class="flex flex-row gap-4 mx-auto w-fit"
                 >
-                    <!-- Numéros principaux -->
 
                     <UCheckbox
                         v-for="(num, numIndex) in numbers"
@@ -213,7 +293,6 @@ watch(
                         }"
                     />
 
-                    <!-- Numéro chance -->
                     <UCheckbox
                         v-show="visibleItems.has(`${lineIndex}-lucky`)"
                         class="fade-in"
@@ -239,7 +318,7 @@ watch(
                     </ul>
                 </div>
 
-                <!-- <section class="flex justify-between gap-4">
+                 <section class="flex justify-between gap-4">
                     <div class="flex-1">
                         <UCheckboxGroup
                             v-model="first"
@@ -266,14 +345,14 @@ watch(
                             }"
                         />
                     </div>
-                </section> -->
+                </section>
 
-                <!-- <section v-if="result.length > 0">
+                 <section v-if="result.length > 0">
                     <CommonsTableStat :data="result" />
-                </section> -->
+                </section>
             </div>
         </div>
-    </div>
+    </div> -->
 </template>
 <style scoped>
 .fade-in {

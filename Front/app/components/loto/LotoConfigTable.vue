@@ -6,6 +6,8 @@ const { lotteryConfig } = defineProps<{
         shouldEvaluateScore: boolean
         shouldCheckExistence: boolean
         shouldGenerateLucky: boolean
+        shouldEvaluatePercentage: boolean
+        shouldEvaluateWeight: boolean
         favorEven: number
         favorHigh: number
         sequenceTolerance: number
@@ -115,7 +117,7 @@ const configRows = computed((): ConfigRow[] => {
     ]
     const tech = [
         {
-            parameter: 'Tirage',
+            parameter: 'Tirage'
         },
         {
             parameter: 'Prendre en compte le score',

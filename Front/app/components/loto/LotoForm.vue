@@ -32,8 +32,9 @@ const accordionItems = [
                     <component :is="item.component" v-if="item.component" v-model="lotteryConfig" />
                 </template>
             </UAccordion>
-            <LotoConfigTable :lottery-config="lotteryConfig" />
         </div>
-        <UButton label="Générer" type="submit" block size="xl" />
+        <Teleport to="#modals">
+            <UButton label="Générer" type="submit" block size="xl" />
+        </Teleport>
     </UForm>
 </template>
