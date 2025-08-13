@@ -48,10 +48,11 @@ class GridGenerationConfig(BaseModel):
     excludeNumbers: List[int] = []
     shouldCheckExistence: bool = False
     shouldEvaluateScore: bool = False
+    shouldEvaluatePercentage: bool = False
+    shouldEvaluateWeight: bool = False
     shouldGenerateLucky: bool = True
     favorLucky: Optional[int] = None
     excludeLucky: List[int] = []
-    favoriserFrequence: int = 100
     includedSources: List[str] = ["loto", "super", "grand"]
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None

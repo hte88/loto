@@ -157,20 +157,17 @@ def generate_weighted_grids(db: Session, config: dict):
         if draw.additional_number is not None:
             numbers.append(draw.additional_number)
 
-        number_counter.update([n for n in numbers if isinstance(n, int) is not None])
-
-        if isinstance(draw.lucky_number, int) is not None:
+        number_counter.update([n for n in numbers if isinstance(n, int)])
+        if isinstance(draw.lucky_number, int):
             lucky_counter[draw.lucky_number] += 1
 
     all_numbers = list(range(1, 50))
-    frequencies = {n: number_counter.get(n, 0) for n in all_numbers}
-    max_f = max(frequencies.values(), default=0)
-    if max_f == 0:
-        weights = {n: 1 for n in all_numbers}
-    else:
-        weights = {n: (frequencies[n] / max_f) + 0.01 for n in all_numbers}
+    total_draws = len(draws)
 
-    nb_to_generate = config.get("numbersToGenerate", 5)
+    max_count = max(number_counter.values(), default=0)
+    weights = {n: (number_counter.get(n, 0) / max_count) + 0.01 for n in all_numbers}
+    percentages = {n: (number_counter.get(n, 0) / total_draws) * 100 if total_draws > 0 else 0 for n in all_numbers}
+
     existing_grids = set()
     if config.get("shouldCheckExistence"):
         existing_grids = {
@@ -182,12 +179,16 @@ def generate_weighted_grids(db: Session, config: dict):
             for d in draws
         }
 
+    nb_to_generate = config.get("numbersToGenerate", 5)
+
     def pick_grid():
+        """mode ∈ {'score', 'weight', 'percentage'}"""
         attempts = 0
+
         while True:
             attempts += 1
             if attempts > 3000:
-                raise Exception("Impossible de générer une grille valide selon les critères.")
+                raise Exception("Impossible de générer une grille valide")
 
             grid = config.get("includeNumbers", []).copy()
 
@@ -249,15 +250,41 @@ def generate_weighted_grids(db: Session, config: dict):
             if config.get("shouldEvaluateScore"):
                 score = round(sum(weights[n] for n in grid if isinstance(n, int)), 4)
 
+            score = round(sum(weights[n] for n in grid), 4) if config.get("shouldEvaluateScore") else None
+            avg_weight = round(sum(weights[n] for n in grid) / nb_to_generate, 4) if config.get("shouldEvaluateWeight") else None
+            avg_percentage = round(sum(percentages[n] for n in grid) / nb_to_generate, 4) if config.get("shouldEvaluatePercentage") else None
+
             return {
                 "numbers": grid,
                 "lucky_number": lucky_number,
                 "source_counts": source_counts,
-                "total_draws_used": len(draws),
-                **({"score": score} if config.get("shouldEvaluateScore") else {})
+                "total_draws_used": total_draws,
+                **({"score": score} if score is not None else {}),
+                **({"weight": avg_weight} if avg_weight is not None else {}),
+                **({"percentage": avg_percentage} if avg_percentage is not None else {})
             }
 
-    return [pick_grid() for _ in range(config["gridsToGenerate"])]
+    modes = []
+    if config.get("shouldEvaluateScore"):
+        modes.append("score")
+    if config.get("shouldEvaluateWeight"):
+        modes.append("weight")
+    if config.get("shouldEvaluatePercentage"):
+        modes.append("percentage")
+
+    results = []
+    if len(modes) == 1:
+        # Un seul mode → génération classique
+        mode = modes[0]
+        results = [dict(pick_grid(), mode=mode) for _ in range(config["gridsToGenerate"])]
+    else:
+        # Plusieurs modes → garder les N meilleures pour chaque
+        for mode in modes:
+            generated = [pick_grid() for _ in range(config["gridsToGenerate"] * 2)]
+            sorted_grids = sorted(generated, key=lambda g: g.get(mode, 0), reverse=True)
+            results.extend([dict(g, mode=mode) for g in sorted_grids[:config["gridsToGenerate"]]])
+
+    return results
 
 
 def count_consecutive(numbers: list[int]) -> int:
